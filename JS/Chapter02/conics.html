@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conic Examples</title>
+
+  <style>
+
+    body {
+      background-color: #eee;
+    }
+    .chapter {
+      background-color: #eee;
+      padding: 8pt;
+    }
+
+    .section {
+      background-color: #bbb;
+      padding: 12pt;
+    }
+
+    .example {
+      background-color: white;
+    }
+
+    canvas {
+      border: solid 1px black;
+      margin: 12pt;
+    }
+
+  </style>
+</head>
+<body>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.1.0/math.js" integrity="sha512-UvIACSDvB2RfwkjYTjYkuJq901Y6L4nZNoOHZMRBvSdIiIm3BFrtOdgjr5EZSPYR5cU/P6XUW6TN/578FuTysw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <div class="chapter">
+    <div class="section">
+      <div class="example">
+        <canvas id="ch1sec1ex1" width="600" height="400">
+
+        </canvas>
+
+        <script>
+
+          function nullspace(A) {
+            eigenres = math.eigs(math.multiply(math.transpose(A),A));
+            
+            zero_eig_indices = eigenres.values.toArray().filter((x,idx) => x**2 < 1e-25);
+
+            nullspace_vectors = math.matrix(eigenres.vectors).columns().filter( (v,idx) => idx in zero_eig_indices );
+            
+            ret = math.matrix(math.transpose(nullspace_vectors.map(x => x.toArray().map( y => y[0]**2 < 1e-20 ? 0 : y[0]))));
+          
+            return ret;
+          }
+
+          function build_conic_vector(pts) {
+            return math.matrix([
+              [pts[0][0]**2, pts[0][0] * pts[0][1], pts[0][1]**2, pts[0][0], pts[0][1], 1],
+              [pts[1][0]**2, pts[1][0] * pts[1][1], pts[1][1]**2, pts[1][0], pts[1][1], 1],
+              [pts[2][0]**2, pts[2][0] * pts[2][1], pts[2][1]**2, pts[2][0], pts[2][1], 1],
+              [pts[3][0]**2, pts[3][0] * pts[3][1], pts[3][1]**2, pts[3][0], pts[3][1], 1],
+              [pts[4][0]**2, pts[4][0] * pts[4][1], pts[4][1]**2, pts[4][0], pts[4][1], 1]]);
+          }
+
+          function conic_eval(pt, p_conic) {
+            conic = math.transpose(p_conic)[0];
+            if (conic != undefined) {
+              return conic[0] * pt[0] * pt[0] + conic[1] * pt[0] * pt[1] + conic[2] * pt[1] * pt[1] + conic[3] * pt[0] + conic[4] * pt[1] + conic[5];
+            } else {
+              return NaN;
+            }
+          }
+
+
+          (function() {
+            var canvas = document.getElementById('ch1sec1ex1');
+            var ctx = canvas.getContext('2d');
+   
+            model = {
+              points: []
+            }
+
+            canvas.addEventListener('click', function(event) {
+              event.preventDefault();
+              
+              if(model.points.find( pt => pt[0] == event.offsetX && pt[1] == event.offsetY)) {
+                return;
+              }
+
+              model.points.push( [event.offsetX, event.offsetY] );
+
+              ctx.fillStyle = 'rgb(255,255,255)';
+              ctx.fillRect(0,0,600,400);
+
+              vals = []
+              while (model.points.length > 5) {
+                model.points.shift();
+              }
+              if (model.points.length == 5) {
+                conic_mat = build_conic_vector(model.points);
+                ns = nullspace(conic_mat);
+                // console.table(ns.toArray());
+                for ( x = 0; x < 600; x += 5) {
+                  for ( y = 0; y < 400; y += 5) {
+                    val = conic_eval([x,y], ns.toArray());
+                    vals.push(val);
+                    // console.log(val);
+                    weight = math.floor(255 * val * 30.0);
+                    weight = weight > 0 ? weight : 0;
+                    weight = weight < 255 ? weight : 255;
+                    ws = math.floor(weight).toString();
+                    // console.log(weight);
+                    ctx.fillStyle = 'rgb(' + ws + ',' + ws + ',' + ws + ')';
+                    ctx.fillRect(x-1,y-1,2,2);
+                  }
+                }
+              }
+
+              if (1 || model.points.length == 5) {
+                console.log(
+                  math.multiply(  math.matrix([[1,2],[3,4]]),
+                                  math.matrix([[0,1],[1,0]])).toString()
+                );
+              }
+
+              const half_sz = 10/2;
+              ctx.fillStyle = 'rgba(100, 100, 0,100)';
+              model.points.forEach((pt) => {
+                ctx.fillRect(pt[0] - half_sz, pt[1] - half_sz, 2 * half_sz, 2 * half_sz);
+              })
+              
+            });
+          })();
+          
+        </script>
+
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
